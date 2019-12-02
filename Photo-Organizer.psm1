@@ -4,9 +4,13 @@ $Env:PhotoOrgRecycleBin = "$Env:PhotoOrgLogDir\Recycle_Bin"
 $Env:PhotoOrgRnamedLog = "$Env:PhotoOrgLogDir\Renamed-Files.log"
 $Env:PhotoOrgSessionLog = "$Env:PhotoOrgLogDir\Session.log"
 $Env:PhotoOrgFileTypesLog = "$Env:PhotoOrgLogDir\File-Types.log"
-$Env:PhotoOrgSpecialFilePrefixes = @("SS","ZZ")
+$Env:PhotoOrgSpecialFilePrefixes = "SS,ZZ"
 
 #Tools
+Function Get-SpecialFilePrefixes {
+    $specialFilePrefixes = $Env:PhotoOrgSpecialFilePrefixes.Split(",")
+    $specialFilePrefixes
+}
 Function Update-FileTypes {
     Param([parameter(Mandatory)][string]$Destination)
     $types = Get-Content $Env:PhotoOrgFileTypesLog
@@ -119,9 +123,9 @@ Function Get-NewFileLocation {
 
     $fileName = Split-Path $FilePath -Leaf
     $split = $fileName.Split("_.")
-    if ($Env:PhotoOrgSpecialFilePrefixes -contains $split[0]) {
-        $split = $split[1..5] -join "_"
-        $split = $split.Split("_")
+    $specialFiles = Get-SpecialFilePrefixes
+    if ($specialFiles -contains $split[0]) {
+        $split = $split[1..5]
     }
     $monthName = Get-MonthName -Month $split[1]
     $newLocation = ("{0}\{1}\{2}_{3}" -f $Destination,$split[0],$split[1],$monthName)
@@ -218,7 +222,8 @@ Function Rename-MediaFile {
 
     Rename-Item -Path $Path -NewName $newFileName
     $split = $newFileName.Split("_.")
-    if ($Env:PhotoOrgSpecialFilePrefixes -contains $split[0]) {
+    $specialFiles = Get-SpecialFilePrefixes
+    if ($specialFiles -contains $split[0]) {
         New-RenameLogEntry -OldFilePath $Path -NewFilePath $newFileName
     }
 
@@ -275,7 +280,8 @@ Function Start-PhotoOrganizer {
         $fileName = Split-Path $f.FullName -Leaf
         $folder = Split-Path $f.FullName -Parent
         $split = $fileName.Split("_")
-        if ($Env:PhotoOrgSpecialFilePrefixes -notcontains $split[0]) {
+        $specialFiles = Get-SpecialFilePrefixes
+        if ($specialFiles -notcontains $split[0]) {
             $newFileName = Rename-MediaFile -Path $f.FullName
         }
         else { 
